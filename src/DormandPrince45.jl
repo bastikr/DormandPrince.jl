@@ -35,13 +35,19 @@ b6(θ) = θ^2*(3-2*θ)*a7[6] - θ^2*(θ-1)^2 * 55*(29972135 - 7076736*θ)/822651
 """
 Intermediate function value for the nth step.
 
-Arguments:
-----------
-    * x: End value.
-    * x0: Starting value.
-    * h: Step size.
-    * coeffs: Runge-kutta coefficients for the nth substep.
-    * k: Function derivatives at the previous substep points.
+
+**Arguments**
+
+    x
+        End value.
+    x0
+        Starting value.
+    h
+        Step size.
+    coeffs
+        Runge-kutta coefficients for the nth substep.
+    k
+        Function derivatives at the previous substep points.
 """
 function substep{T}(x::Vector{T}, x0::Vector{T}, h::Float64, coeffs::Vector{Float64}, k::Vector{Vector{T}})
     @inbounds for m=1:length(x0)
@@ -58,15 +64,24 @@ end
 """
 Perform one single Runge-Kutta step.
 
-Arguments:
-----------
-    * F: Derivative function with signature F(t, y, dy) which writes the derivative into dy.
-    * t0: Start time of the step.
-    * h: Length of the step.
-    * x0: Initial state.
-    * xp: Final state after the Runge-Kutta step. (5th order)
-    * xs: Final state after the Runge-Kutta step. (4th order)
-    * k: States at the substeps.
+
+**Arguments**
+
+    F
+        Derivative function with signature F(t, y, dy) which writes the
+        derivative into dy.
+    t0
+        Start time of the step.
+    h
+        Length of the step.
+    x0
+        Initial state.
+    xp
+        Final state after the Runge-Kutta step. (5th order)
+    xs
+        Final state after the Runge-Kutta step. (4th order)
+    k
+        States at the substeps.
 """
 function step{T}(F::Function, t0::Float64, h::Float64,
                 x0::Vector{T}, xp::Vector{T}, xs::Vector{T}, k::Vector{Vector{T}})
@@ -96,16 +111,24 @@ end
 """
 Calculate state for intermediate steps (Dense output).
 
-Arguments:
-----------
-    * t0: Start time of the step.
-    * x0: Initial state.
-    * h: Length of the step.
-    * k: States at the substeps.
-    * t: Time at which the state should be interpolated.
-    * x: Resulting state at the given point of time.
+
+**Arguments**
+
+    t0
+        Start time of the step.
+    x0
+        Initial state.
+    h
+        Length of the step.
+    k
+        States at the substeps.
+    t
+        Time at which the state should be interpolated.
+    x
+        Resulting state at the given point of time.
 """
-function interpolate{T}(t0::Float64, x0::Vector{T}, h::Float64, k::Vector{Vector{T}}, t::Float64, x::Vector{T})
+function interpolate{T}(t0::Float64, x0::Vector{T}, h::Float64,
+                        k::Vector{Vector{T}}, t::Float64, x::Vector{T})
     θ = (t-t0)/h
     b1_ = b1(θ); b3_ = b3(θ); b4_ = b4(θ); b5_ = b5(θ); b6_ = b6(θ); b7_ = b7(θ)
     for i=1:length(x0)
@@ -177,7 +200,10 @@ end
 """
 Display states at the given times which are in the current Runge-Kutta step.
 """
-function display_steps{T}(fout::Function, tspan::Vector{Float64}, t::Float64, x::Vector{T}, h::Float64, k::Vector{Vector{T}}, xs::Vector{T})
+function display_steps{T}(fout::Function,
+                    tspan::Vector{Float64}, t::Float64,
+                    x::Vector{T}, h::Float64, k::Vector{Vector{T}},
+                    xs::Vector{T})
     for tout=tspan
         if t<tout<=t+h
             interpolate(t, x, h, k, tout, xs)
@@ -193,38 +219,61 @@ end
 """
 Adaptive Runge-Kutta Dormand-Prince 4(5) solver with event handling and dense output.
 
-Arguments:
-----------
-    * F: Derivative function with signature F(t, y, dy) which writes the derivative into dy.
-    * tspan: Vector of times at which output should be displayed.
-    * x0: Initial state.
-    * event_locator: Function used to find events with signature
-            event_locator(t, x) returning a real value. If the sign of the returned value
-            changes the event_callback function is called.
-    * event_callback: Function that is called when an event happens. Its
-            signature is event_callback(t, x) and it should return a CallbackCommand.
-            The possible CallBack commands are:
-                - nojump: No changes in the dynamics. In this case x should not be changed
-                          inside the callback function.
-                - jump: the x vector has changed and time evolution continues from t_event.
-                - stop: The ode solver stops at the event time.
 
-Optional Arguments:
--------------------
-    * fout: Function called to display the state at the given points of time
-            with signature fout(t, x). If no function is given, ode_event returns
-            a vector with the states at all points in time given in tspan.
-    * reltol: Relative error tolerance.
-    * abstol: Absolute error tolerance.
-    * h0: Initial guess for the size of the time step. If no number is given an
-            initial timestep is chosen automatically.
-    * hmin: If the automatic stepsize goes below this limit the ode solver stops
-            with an error.
-    * hmax: Stepsize is never increased above this limit.
-    * display_initialvalue: Call fout function at tspan[1].
-    * display_intermediatesteps: Call fout function after every Runge-Kutta step.
-    * display_beforeevent: Call fout function immediately before an event.
-    * display_afterevent: Call fout function immediately after an event.
+**Arguments**
+
+    F
+        Derivative function with signature F(t, y, dy) which writes the
+        derivative into dy.
+    tspan
+        Vector of times at which output should be displayed.
+    x0
+        Initial state.
+    event_locator
+        Function used to find events with signature
+            event_locator(t, x) returning a real value. If the sign of the
+            returned value changes the event_callback function is called.
+    event_callback
+        Function that is called when an event happens. Its signature is
+        event_callback(t, x) and it should return a CallbackCommand.
+        The possible CallBack commands are:
+
+            ``nojump``
+                No changes in the dynamics. In this case x should not be
+                changed inside the callback function.
+            ``jump``
+                The x vector has changed and time evolution continues from
+                *t_event*.
+            ``stop``
+                The ode solver stops at the event time.
+
+
+**Optional Arguments**
+
+    fout
+        Function called to display the state at the given points of time
+        with signature fout(t, x). If no function is given, ode_event returns
+        a vector with the states at all points in time given in tspan.
+    reltol
+        Relative error tolerance.
+    abstol
+        Absolute error tolerance.
+    h0
+        Initial guess for the size of the time step. If no number is given an
+        initial timestep is chosen automatically.
+    hmin
+        If the automatic stepsize goes below this limit the ode solver stops
+        with an error.
+    hmax
+        Stepsize is never increased above this limit.
+    display_initialvalue
+        Call fout function at tspan[1].
+    display_intermediatesteps
+        Call fout function after every Runge-Kutta step.
+    display_beforeevent
+        Call fout function immediately before an event.
+    display_afterevent
+        Call fout function immediately after an event.
 """
 function ode_event{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T},
                     event_locator::Function, event_callback::Function;
@@ -329,26 +378,40 @@ end
 """
 Adaptive Runge-Kutta Dormand-Prince 4(5) solver with dense output.
 
-Arguments:
-----------
-    * F: Derivative function with signature F(t, y, dy) which writes the derivative into dy.
-    * tspan: Vector of times at which output should be displayed.
-    * x0: Initial state.
 
-Optional Arguments:
--------------------
-    * fout: Function called to display the state at the given points of time
-            with signature fout(t, x). If no function is given, ode_event returns
-            a vector with the states at all points in time given in tspan.
-    * reltol: Relative error tolerance.
-    * abstol: Absolute error tolerance.
-    * h0: Initial guess for the size of the time step. If no number is given an
-            initial timestep is chosen automatically.
-    * hmin: If the automatic stepsize goes below this limit the ode solver stops
-            with an error.
-    * hmax: Stepsize is never increased above this limit.
-    * display_initialvalue: Call fout function at tspan[1].
-    * display_intermediatesteps: Call fout function after every Runge-Kutta step.
+**Arguments**
+
+    F
+        Derivative function with signature F(t, y, dy) which writes the
+        derivative into dy.
+    tspan
+        Vector of times at which output should be displayed.
+    x0
+        Initial state.
+
+
+**Optional Arguments**
+
+    fout
+        Function called to display the state at the given points of time
+        with signature fout(t, x). If no function is given, ode_event returns
+        a vector with the states at all points in time given in tspan.
+    reltol
+        Relative error tolerance.
+    abstol
+        Absolute error tolerance.
+    h0
+        Initial guess for the size of the time step. If no number is given an
+        initial timestep is chosen automatically.
+    hmin
+        If the automatic stepsize goes below this limit the ode solver stops
+        with an error.
+    hmax
+        Stepsize is never increased above this limit.
+    display_initialvalue
+        Call fout function at tspan[1].
+    display_intermediatesteps
+        Call fout function after every Runge-Kutta step.
 """
 function ode{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T};
                     fout::Union{Function, Void} = nothing,
