@@ -1,7 +1,7 @@
 using DormandPrince45
 
 sourcepath = "README.in.rst"
-targetpath = "README.rst"
+targetpath = "../README.rst"
 
 f = open(sourcepath)
 buf = readall(f)
@@ -26,7 +26,7 @@ end
 
 function render_function(arg)
     r = search(arg, "::")
-    src = arg[1:first(r)-1]
+    src = "../" * arg[1:first(r)-1]
     name = arg[last(r)+1:end]
 
     f = open(src)
