@@ -213,6 +213,112 @@ function display_steps{T}(fout::Function,
 end
 
 
+"""
+Adaptive Runge-Kutta Dormand-Prince 4(5) solver with dense output.
+
+
+**Arguments**
+
+    F
+        Derivative function with signature F(t, y, dy) which writes the
+        derivative into dy.
+    tspan
+        Vector of times at which output should be displayed.
+    x0
+        Initial state.
+
+
+**Optional Arguments**
+
+    fout
+        Function called to display the state at the given points of time
+        with signature fout(t, x). If no function is given, ode_event returns
+        a vector with the states at all points in time given in tspan.
+    reltol
+        Relative error tolerance.
+    abstol
+        Absolute error tolerance.
+    h0
+        Initial guess for the size of the time step. If no number is given an
+        initial timestep is chosen automatically.
+    hmin
+        If the automatic stepsize goes below this limit the ode solver stops
+        with an error.
+    hmax
+        Stepsize is never increased above this limit.
+    display_initialvalue
+        Call fout function at tspan[1].
+    display_intermediatesteps
+        Call fout function after every Runge-Kutta step.
+"""
+function ode{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T};
+                    fout::Union{Function, Void} = nothing,
+                    reltol::Float64 = 1.0e-6,
+                    abstol::Float64 = 1.0e-8,
+                    h0::Float64 = NaN,
+                    hmin::Float64 = (tspan[end]-tspan[1])/1e9,
+                    hmax::Float64 = (tspan[end]-tspan[1]),
+                    display_initialvalue::Bool = true,
+                    display_intermediatesteps::Bool = false,
+                    )
+    t, tfinal = tspan[1], tspan[end]
+
+    # Setup output function
+    fout_() = nothing
+    if fout == nothing
+        tout = Float64[]
+        xout = Vector{T}[]
+        function fout_(t::Float64, x::Vector{T})
+            push!(tout, t)
+            push!(xout, deepcopy(x))
+            nothing
+        end
+    else
+        fout_(t::Float64, x::Vector{T}) = fout(t, x)
+    end
+
+    display_initialvalue && fout_(t, x0)
+
+    # Allocate memory
+    x = copy(x0) # Don't change given state.
+    xp, xs, k = allocate_memory(x0)
+
+    # Initial derivative.
+    F(t,x,k[1])
+
+    # Find initial step size.
+    h = (h0===NaN ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
+    h = max(hmin, h)
+    h = min(hmax, h)
+
+    accept_step = true
+    while t < tfinal
+        # Try Runge-Kutta steps until the error is below the tolerances.
+        step(F, t, h, x, xp, xs, k)
+        err = error_estimate(xp, xs, abstol, reltol)
+        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
+        if accept_step
+            display_steps(fout_, tspan, t, x, h, k, xs)
+            if display_intermediatesteps && t+h<tfinal
+               fout_(t+h, xp)
+            end
+            xp, x = x, xp
+            k[1], k[end] = k[end], k[1]
+            t = t + h
+        end
+        h = hnew
+    end
+
+    # If no fout function was given return the captured results.
+    if fout == nothing
+        return tout, xout
+    end
+end
+
+
+"""
+Callback commands used for event handling.
+"""
 @enum CallbackCommand nojump jump stop
 
 
@@ -364,109 +470,6 @@ function ode_event{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T},
                 k[1], k[end] = k[end], k[1]
                 t = t + h
             end
-        end
-        h = hnew
-    end
-
-    # If no fout function was given return the captured results.
-    if fout == nothing
-        return tout, xout
-    end
-end
-
-
-"""
-Adaptive Runge-Kutta Dormand-Prince 4(5) solver with dense output.
-
-
-**Arguments**
-
-    F
-        Derivative function with signature F(t, y, dy) which writes the
-        derivative into dy.
-    tspan
-        Vector of times at which output should be displayed.
-    x0
-        Initial state.
-
-
-**Optional Arguments**
-
-    fout
-        Function called to display the state at the given points of time
-        with signature fout(t, x). If no function is given, ode_event returns
-        a vector with the states at all points in time given in tspan.
-    reltol
-        Relative error tolerance.
-    abstol
-        Absolute error tolerance.
-    h0
-        Initial guess for the size of the time step. If no number is given an
-        initial timestep is chosen automatically.
-    hmin
-        If the automatic stepsize goes below this limit the ode solver stops
-        with an error.
-    hmax
-        Stepsize is never increased above this limit.
-    display_initialvalue
-        Call fout function at tspan[1].
-    display_intermediatesteps
-        Call fout function after every Runge-Kutta step.
-"""
-function ode{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T};
-                    fout::Union{Function, Void} = nothing,
-                    reltol::Float64 = 1.0e-6,
-                    abstol::Float64 = 1.0e-8,
-                    h0::Float64 = NaN,
-                    hmin::Float64 = (tspan[end]-tspan[1])/1e9,
-                    hmax::Float64 = (tspan[end]-tspan[1]),
-                    display_initialvalue::Bool = true,
-                    display_intermediatesteps::Bool = false,
-                    )
-    t, tfinal = tspan[1], tspan[end]
-
-    # Setup output function
-    fout_() = nothing
-    if fout == nothing
-        tout = Float64[]
-        xout = Vector{T}[]
-        function fout_(t::Float64, x::Vector{T})
-            push!(tout, t)
-            push!(xout, deepcopy(x))
-            nothing
-        end
-    else
-        fout_(t::Float64, x::Vector{T}) = fout(t, x)
-    end
-
-    display_initialvalue && fout_(t, x0)
-
-    # Allocate memory
-    x = copy(x0) # Don't change given state.
-    xp, xs, k = allocate_memory(x0)
-
-    # Initial derivative.
-    F(t,x,k[1])
-
-    # Find initial step size.
-    h = (h0===NaN ? initial_stepsize(F, t, x, k, abstol, reltol, k[2], k[3]) : h0)
-    h = max(hmin, h)
-    h = min(hmax, h)
-
-    accept_step = true
-    while t < tfinal
-        # Try Runge-Kutta steps until the error is below the tolerances.
-        step(F, t, h, x, xp, xs, k)
-        err = error_estimate(xp, xs, abstol, reltol)
-        hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
-        if accept_step
-            display_steps(fout_, tspan, t, x, h, k, xs)
-            if display_intermediatesteps && t+h<tfinal
-               fout_(t+h, xp)
-            end
-            xp, x = x, xp
-            k[1], k[end] = k[end], k[1]
-            t = t + h
         end
         h = hnew
     end
