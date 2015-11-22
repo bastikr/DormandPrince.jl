@@ -48,20 +48,6 @@ function render_function(arg)
     return ".. code-block:: julia\n\n    " * funcstring * "\n\n" * docstring
 end
 
-# r = search(buf, ".. expand ")
-# if last(r) != -1
-#     i0 = last(r) + 1
-#     i1 = first(search(buf, " ", i0)) - 1
-#     directive = buf[i0:i1]
-#     i0 = i1 + 2
-#     i1 = first(search(buf, "\n", i0)) - 1
-#     arg = buf[i0:i1]
-#     println("directive: ", directive)
-#     println("arg: ", arg)
-#     if directive == "function"
-#         text = render_function(arg)
-#     end
-# end
 
 function render(cmd)
     i0 = length(".. expand ") + 1
