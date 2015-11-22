@@ -1,6 +1,12 @@
 Dormand-Prince (4)5
 ===================
 
+.. image:: https://travis-ci.org/bastikr/DormandPrince45.jl.svg
+    :target: https://travis-ci.org/bastikr/DormandPrince45.jl
+
+.. image:: https://ci.appveyor.com/api/projects/status/a9ffo8sbvunl0q3v?svg=true
+    :target: https://ci.appveyor.com/project/bastikr/dormandprince45-jl
+
 Efficient implementation of an adaptive Dormand-Prince (4)5 Runge-Kutta solver with dense output, in-place derivative computation and event handling.
 
 Dense output
