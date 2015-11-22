@@ -45,12 +45,15 @@ ode
 .. code-block:: julia
 
 
-    function ode(F, tspan, x0, fout::Function;
-        reltol::Float64 = 1.0e-6, abstol::Float64 = 1.0e-8,
-        h0::Float64 = NaN, hmin::Float64 = (tspan[end]-tspan[1])/1e9, hmax::Float64 = (tspan[end]-tspan[1]),
-        display_initialvalue::Bool = true,
-        display_finalvalue::Bool = true,
-        display_intermediatesteps::Bool = false)
+    function ode(F::Function, tspan::Vector{Float64}, x0::Vector{T};
+                fout::Union{Function, Void} = nothing,
+                reltol::Float64 = 1.0e-6,
+                abstol::Float64 = 1.0e-8,
+                h0::Float64 = NaN,
+                hmin::Float64 = (tspan[end]-tspan[1])/1e9,
+                hmax::Float64 = (tspan[end]-tspan[1]),
+                display_initialvalue::Bool = true,
+                display_intermediatesteps::Bool = false)
 
 **Arguments**
 
@@ -77,8 +80,6 @@ ode
         Stepsize is never increased above this limit.
     display_initialvalue
         Call fout function at tspan[1].
-    display_finalvalue
-        Call fout function at tspan[end].
     display_intermediatesteps
         Call fout function after every Runge-Kutta step.
 
@@ -88,15 +89,15 @@ ode_event
 
 .. code-block:: julia
 
-    function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
+    function ode_event{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T},
                     event_locator::Function, event_callback::Function;
+                    fout::Union{Function, Void} = nothing,
                     reltol::Float64 = 1.0e-6,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
                     display_initialvalue::Bool = true,
-                    display_finalvalue::Bool = true,
                     display_intermediatesteps::Bool = false,
                     display_beforeevent::Bool = false,
                     display_afterevent::Bool = false)
@@ -106,16 +107,12 @@ ode_event
 
     F
         Derivative function with signature F(t, y, dy) which writes the derivative into dy.
-
     tspan
         Vector of times at which output should be displayd.
-
     x0
         Initial state.
-
     event_locator
         Function used to find events with signature event_locator(t, x) returning a real value. If the sign of the returned value changes the event_callback function is called.
-
     event_callback
         Function that is called when an event happens. Its signature is event_callback(t, x) and it should return a CallbackCommand. The possible CallBack commands are:
 
@@ -131,34 +128,22 @@ ode_event
 
     fout
         Function called to display the state at the given points of time with signature fout(t, x). If no function is given, ode_event returns a vector with the states at allpoints in time given in tspan.
-
     reltol
         Relative error tolerance.
-
     abstol
         Absolute error tolerance.
-
     h0
         Initial guess for the size of the time step. If no number is given an initial timestep is chosen automatically.
-
     hmin
         If the automatic stepsize goes below this limit the ode solver stops with an error.
-
     hmax
         Stepsize is never increased above this limit.
-
     display_initialvalue
         Call fout function at tspan[1].
-
-    display_finalvalue
-        Call fout function at tspan[end].
-
     display_intermediatesteps
         Call fout function after every Runge-Kutta step.
-
     display_beforeevent
         Call fout function immediately before an event.
-
     display_afterevent
         Call fout function immediately after an event.
 

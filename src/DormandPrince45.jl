@@ -222,29 +222,43 @@ Optional Arguments:
             with an error.
     * hmax: Stepsize is never increased above this limit.
     * display_initialvalue: Call fout function at tspan[1].
-    * display_finalvalue: Call fout function at tspan[end].
     * display_intermediatesteps: Call fout function after every Runge-Kutta step.
     * display_beforeevent: Call fout function immediately before an event.
     * display_afterevent: Call fout function immediately after an event.
 """
-function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
+function ode_event{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T},
                     event_locator::Function, event_callback::Function;
+                    fout::Union{Function, Void} = nothing,
                     reltol::Float64 = 1.0e-6,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
                     display_initialvalue::Bool = true,
-                    display_finalvalue::Bool = true,
                     display_intermediatesteps::Bool = false,
                     display_beforeevent::Bool = false,
                     display_afterevent::Bool = false
                     )
     t, tfinal = tspan[1], tspan[end]
-    display_initialvalue && fout(t, x0)
+
+    # Setup output function
+    fout_() = nothing
+    if fout == nothing
+        tout = Float64[]
+        xout = Vector{T}[]
+        function fout_(t::Float64, x::Vector{T})
+            push!(tout, t)
+            push!(xout, deepcopy(x))
+            nothing
+        end
+    else
+        fout_(t::Float64, x::Vector{T}) = fout(t, x)
+    end
+
+    display_initialvalue && fout_(t, x0)
 
     # Allocate memory
-    x = copy(x0) # Dont change initial state.
+    x = copy(x0) # Don't change given state.
     xp, xs, k = allocate_memory(x0)
 
     # Initial derivative.
@@ -267,14 +281,14 @@ function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
             e2 = event_locator(t+h,xp)
             if e2==0. || e1*e2 < 0. # Handle event case.
                 t_event = fzero(t_->(interpolate(t, x, h, k, t_, xs); event_locator(t_, xs)), t, t+h)
-                display_steps(fout, tspan[tspan.<t_event], t, x, h, k, xs)
+                display_steps(fout_, tspan[tspan.<t_event], t, x, h, k, xs)
                 interpolate(t, x, h, k, t_event, xs)
-                display_beforeevent && fout(t_event, xs)
+                display_beforeevent && fout_(t_event, xs)
                 cmd = event_callback(t_event, xs)
                 if typeof(cmd)!=CallbackCommand
                     error("Event callback function has to return a CallbackCommand.")
                 end
-                display_afterevent && fout(t_event, xs)
+                display_afterevent && fout_(t_event, xs)
                 if cmd == stop
                     return nothing
                 elseif cmd == jump
@@ -284,8 +298,8 @@ function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
                     t = t_event
                     continue
                 elseif cmd == nojump
-                    display_steps(fout, tspan[tspan.>t_event], t, x, h, k, xs)
-                    display_intermediatesteps && fout(t, xp)
+                    display_steps(fout_, tspan[tspan.>t_event], t, x, h, k, xs)
+                    display_intermediatesteps && fout_(t, xp)
                     xp, x = x, xp
                     k[1], k[end] = k[end], k[1]
                     t = t + h
@@ -293,9 +307,9 @@ function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
                     error("Unrecognized event command.")
                 end
             else # Handle no-event case.
-                display_steps(fout, tspan, t, x, h, k, xs)
+                display_steps(fout_, tspan, t, x, h, k, xs)
                 if display_intermediatesteps && t+h<tfinal
-                    fout(t+h, xp)
+                    fout_(t+h, xp)
                 end
                 xp, x = x, xp
                 k[1], k[end] = k[end], k[1]
@@ -304,17 +318,11 @@ function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function,
         end
         h = hnew
     end
-end
 
-
-function ode_event{T}(F, tspan::Vector{Float64}, x0::Vector{T},
-                    event_locator::Function, event_callback::Function;
-                    args...)
-    tout = Float64[]
-    xout = Vector{T}[]
-    fout = (t, x) -> (push!(tout, t); push!(xout, deepcopy(x)); nothing)
-    ode_event(F, tspan, x0, fout, event_locator, event_callback; args...)
-    return tout, xout
+    # If no fout function was given return the captured results.
+    if fout == nothing
+        return tout, xout
+    end
 end
 
 
@@ -340,24 +348,38 @@ Optional Arguments:
             with an error.
     * hmax: Stepsize is never increased above this limit.
     * display_initialvalue: Call fout function at tspan[1].
-    * display_finalvalue: Call fout function at tspan[end].
     * display_intermediatesteps: Call fout function after every Runge-Kutta step.
 """
-function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function;
+function ode{T}(F::Function, tspan::Vector{Float64}, x0::Vector{T};
+                    fout::Union{Function, Void} = nothing,
                     reltol::Float64 = 1.0e-6,
                     abstol::Float64 = 1.0e-8,
                     h0::Float64 = NaN,
                     hmin::Float64 = (tspan[end]-tspan[1])/1e9,
                     hmax::Float64 = (tspan[end]-tspan[1]),
                     display_initialvalue::Bool = true,
-                    display_finalvalue::Bool = true,
                     display_intermediatesteps::Bool = false,
                     )
     t, tfinal = tspan[1], tspan[end]
-    display_initialvalue && fout(t, x0)
+
+    # Setup output function
+    fout_() = nothing
+    if fout == nothing
+        tout = Float64[]
+        xout = Vector{T}[]
+        function fout_(t::Float64, x::Vector{T})
+            push!(tout, t)
+            push!(xout, deepcopy(x))
+            nothing
+        end
+    else
+        fout_(t::Float64, x::Vector{T}) = fout(t, x)
+    end
+
+    display_initialvalue && fout_(t, x0)
 
     # Allocate memory
-    x = copy(x0) # Dont change initial state.
+    x = copy(x0) # Don't change given state.
     xp, xs, k = allocate_memory(x0)
 
     # Initial derivative.
@@ -375,9 +397,9 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function;
         err = error_estimate(xp, xs, abstol, reltol)
         hnew, accept_step = stepsize_strategy(err, accept_step, h, hmin, hmax)
         if accept_step
-            display_steps(fout, tspan, t, x, h, k, xs)
+            display_steps(fout_, tspan, t, x, h, k, xs)
             if display_intermediatesteps && t+h<tfinal
-               fout(t+h, xp)
+               fout_(t+h, xp)
             end
             xp, x = x, xp
             k[1], k[end] = k[end], k[1]
@@ -385,15 +407,11 @@ function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}, fout::Function;
         end
         h = hnew
     end
-end
 
-
-function ode{T}(F, tspan::Vector{Float64}, x0::Vector{T}; args...)
-    tout = Float64[]
-    xout = Vector{T}[]
-    fout = (t, x) -> (push!(tout, t); push!(xout, deepcopy(x)); nothing)
-    ode(F, tspan, x0, fout; args...)
-    return tout, xout
+    # If no fout function was given return the captured results.
+    if fout == nothing
+        return tout, xout
+    end
 end
 
 

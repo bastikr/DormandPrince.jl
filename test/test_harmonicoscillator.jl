@@ -44,7 +44,7 @@ for tol=tolerances
         N += 1
         @test abs(x[1] - F(t)) < 5*tol
     end
-    result = ode(f, T, x0, fout; reltol=tol, abstol=tol)
+    result = ode(f, T, x0; fout=fout, reltol=tol, abstol=tol)
     @test N == length(T)
     @test result == nothing
 end
