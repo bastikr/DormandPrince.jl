@@ -4,6 +4,8 @@ export ode, ode_event
 
 using Roots
 
+
+# Order of Runge-Kutta method
 const order = 5
 
 # Runge-Kutta table
@@ -38,7 +40,7 @@ Arguments:
     * x: End value.
     * x0: Starting value.
     * h: Step size.
-    * coeffs: Runge-kutta coefficents for the nth substep.
+    * coeffs: Runge-kutta coefficients for the nth substep.
     * k: Function derivatives at the previous substep points.
 """
 function substep{T}(x::Vector{T}, x0::Vector{T}, h::Float64, coeffs::Vector{Float64}, k::Vector{Vector{T}})
@@ -194,7 +196,7 @@ Adaptive Runge-Kutta Dormand-Prince 4(5) solver with event handling and dense ou
 Arguments:
 ----------
     * F: Derivative function with signature F(t, y, dy) which writes the derivative into dy.
-    * tspan: Vector of times at which output should be displayd.
+    * tspan: Vector of times at which output should be displayed.
     * x0: Initial state.
     * event_locator: Function used to find events with signature
             event_locator(t, x) returning a real value. If the sign of the returned value
@@ -205,7 +207,7 @@ Arguments:
                 - nojump: No changes in the dynamics. In this case x should not be changed
                           inside the callback function.
                 - jump: the x vector has changed and time evolution continues from t_event.
-                - stop: The ode solver stops ia the event time.
+                - stop: The ode solver stops at the event time.
 
 Optional Arguments:
 -------------------
@@ -322,7 +324,7 @@ Adaptive Runge-Kutta Dormand-Prince 4(5) solver with dense output.
 Arguments:
 ----------
     * F: Derivative function with signature F(t, y, dy) which writes the derivative into dy.
-    * tspan: Vector of times at which output should be displayd.
+    * tspan: Vector of times at which output should be displayed.
     * x0: Initial state.
 
 Optional Arguments:
