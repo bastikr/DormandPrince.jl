@@ -1,5 +1,3 @@
-using DormandPrince45
-
 sourcepath = "README.in.rst"
 targetpath = "../README.rst"
 
