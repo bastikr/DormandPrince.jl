@@ -1,5 +1,5 @@
 using Base.Test
-using DormandPrince45
+using DormandPrince
 
 tolerances = [1e-3, 1e-5, 1e-7]
 
